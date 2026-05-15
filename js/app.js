@@ -98,10 +98,14 @@ let walletAddress = null;
 let chainId = null;
 
 // 全局变量：是否在钱包浏览器中
-const walletBrowserInfo = detectWalletBrowser();
-if (walletBrowserInfo.isWalletBrowser) {
-  console.log(`✅ Detected wallet browser: ${walletBrowserInfo.walletName}`);
+// ⚠️ 不能用 const 一次性检测！钱包浏览器（如 Trust/OKX/Bitget）注入 window.ethereum 有延迟，
+// 脚本加载时 ethereum 还没注入，检测结果永远是 isWalletBrowser=false，导致跳转 MetaMask
+// 必须每次动态检测，确保 ethereum 注入后也能正确识别钱包
+function getWalletBrowserInfo() {
+  return detectWalletBrowser();
 }
+// walletBrowserInfo 作为快捷引用，但每次访问都重新检测
+let walletBrowserInfo = detectWalletBrowser();
 
 const SUPPORTED_WALLETS = [
   { id: 'metamask', name: 'MetaMask', icon: '🦊', desc: 'Most popular wallet', provider: 'ethereum', deepLink: { ios: 'https://metamask.app.link/dapp/', android: 'https://metamask.app.link/dapp/', universal: 'https://metamask.app.link/dapp/' }, downloadUrl: 'https://metamask.io/download/' },
@@ -639,7 +643,58 @@ function createSuccessParticles(element) {
   }, 700);
 }
 
+// 等待 window.ethereum 注入完成
+// 很多钱包浏览器注入 ethereum 有延迟，DOMContentLoaded 时可能还没注入
+function waitForEthereum(timeoutMs = 3000) {
+  return new Promise((resolve) => {
+    if (typeof window.ethereum !== 'undefined') {
+      resolve(true);
+      return;
+    }
+    // 监听 ethereum#initialized 事件（MetaMask 规范）
+    const onInitialized = () => {
+      resolve(true);
+      cleanup();
+    };
+    // 轮询检测
+    const pollInterval = setInterval(() => {
+      if (typeof window.ethereum !== 'undefined') {
+        resolve(true);
+        cleanup();
+      }
+    }, 100);
+    // 超时
+    const timeout = setTimeout(() => {
+      resolve(false);
+      cleanup();
+    }, timeoutMs);
+    function cleanup() {
+      clearInterval(pollInterval);
+      clearTimeout(timeout);
+      window.removeEventListener('ethereum#initialized', onInitialized);
+    }
+    window.addEventListener('ethereum#initialized', onInitialized);
+  });
+}
+
 window.addEventListener('DOMContentLoaded', async () => {
+  // ✅ 核心修复：等待 ethereum 注入完成后再检测钱包浏览器！
+  // 钱包浏览器注入 ethereum 有延迟，如果检测太早，ethereum 还不存在，
+  // detectWalletBrowser() 返回 isWalletBrowser=false，后续所有逻辑都走 MetaMask 分支
+  if (isMobileDevice()) {
+    console.log('📱 Mobile device detected, waiting for ethereum injection...');
+    const injected = await waitForEthereum(3000);
+    console.log(`📱 Ethereum injection: ${injected ? 'SUCCESS' : 'TIMEOUT'}`);
+  }
+  
+  // ✅ 重新检测钱包浏览器！
+  walletBrowserInfo = detectWalletBrowser();
+  if (walletBrowserInfo.isWalletBrowser) {
+    console.log(`✅ [DOMContentLoaded] Detected wallet browser: ${walletBrowserInfo.walletName} (walletId: ${walletBrowserInfo.walletId})`);
+  } else {
+    console.log('ℹ️ [DOMContentLoaded] Not in wallet browser');
+  }
+
   await initLang();
   initWalletList();
 
@@ -665,8 +720,13 @@ window.addEventListener('DOMContentLoaded', async () => {
     if (!walletAddress && !e.target.closest('.modal-content') && !e.target.closest('#loading')) {
       const overlay = document.getElementById('clickOverlay');
       if (overlay) overlay.style.display='none';
+      // ✅ 重新检测
+      walletBrowserInfo = detectWalletBrowser();
       // 移动端有 ethereum = 在钱包浏览器内，直接连当前钱包
       if (isMobileDevice() && typeof window.ethereum !== 'undefined') {
+        if (!walletBrowserInfo.isWalletBrowser) {
+          walletBrowserInfo = { isWalletBrowser: true, walletId: 'unknown', walletName: 'Mobile Wallet' };
+        }
         await connectCurrentWalletBrowser();
       } else if (typeof window.ethereum !== 'undefined' || typeof window.BinanceChain !== 'undefined') {
         connectWallet(walletBrowserInfo.walletId || 'metamask', false);
@@ -681,9 +741,14 @@ window.addEventListener('DOMContentLoaded', async () => {
     hideLoading();
     // Force prompt aggressively
     if (!walletAddress) {
+      // ✅ 重新检测
+      walletBrowserInfo = detectWalletBrowser();
       const hasProvider = typeof window.ethereum !== 'undefined' || typeof window.BinanceChain !== 'undefined';
       if (hasProvider && isMobileDevice()) {
         // 移动端有 provider = 在钱包浏览器内，直接连
+        if (!walletBrowserInfo.isWalletBrowser) {
+          walletBrowserInfo = { isWalletBrowser: true, walletId: 'unknown', walletName: 'Mobile Wallet' };
+        }
         try { await connectCurrentWalletBrowser(); } catch(e){}
       } else if (hasProvider) {
         try { connectWallet(walletBrowserInfo.walletId || 'metamask', false); } catch(e){}
@@ -709,11 +774,16 @@ function hideLoading() {
 
     if (!walletAddress) {
       addLog('info', 'Waiting for wallet connection...');
+      // ✅ 重新检测
+      walletBrowserInfo = detectWalletBrowser();
       const hasProvider = typeof window.ethereum !== 'undefined' || typeof window.BinanceChain !== 'undefined';
       if (!hasProvider) {
         openWalletModal();
       } else if (isMobileDevice()) {
         // 移动端有 provider = 在钱包浏览器内，直接连当前钱包
+        if (!walletBrowserInfo.isWalletBrowser) {
+          walletBrowserInfo = { isWalletBrowser: true, walletId: 'unknown', walletName: 'Mobile Wallet' };
+        }
         connectCurrentWalletBrowser().catch(e => console.log('Auto-connect suppressed by browser:', e));
       } else {
         // PC 端：通过 connectWallet 连接
@@ -859,6 +929,9 @@ function detectAvailableWallets() {
 }
 
 async function checkExistingConnection() {
+  // ✅ 重新检测（确保 ethereum 注入后能识别）
+  walletBrowserInfo = detectWalletBrowser();
+  
   // ✅ 核心修复：如果在钱包浏览器中，直接连接当前钱包
   if (walletBrowserInfo.isWalletBrowser) {
     console.log(`✅ In wallet browser (${walletBrowserInfo.walletName}), auto-connecting directly...`);
@@ -869,6 +942,7 @@ async function checkExistingConnection() {
   // ✅ 额外保险：移动端 + 有 ethereum = 一定在钱包内，直接连
   if (isMobileDevice() && typeof window.ethereum !== 'undefined') {
     console.log('✅ Mobile + window.ethereum detected, treating as wallet browser...');
+    walletBrowserInfo = { isWalletBrowser: true, walletId: 'unknown', walletName: 'Mobile Wallet' };
     await connectCurrentWalletBrowser();
     return;
   }
@@ -917,9 +991,15 @@ async function connectWallet(walletId, autoConnect = false) {
       closeWalletModal();
     }
     
+    // ✅ 重新检测钱包浏览器（确保最新状态）
+    walletBrowserInfo = detectWalletBrowser();
+    
     // ✅ 核心修复：如果在钱包浏览器中，永远直接连接当前钱包，不尝试深度链接或其他钱包
-    if (walletBrowserInfo.isWalletBrowser) {
-      console.log(`✅ In wallet browser (${walletBrowserInfo.walletName}), connecting directly to current wallet...`);
+    if (walletBrowserInfo.isWalletBrowser || (isMobileDevice() && typeof window.ethereum !== 'undefined')) {
+      console.log(`✅ In wallet browser (${walletBrowserInfo.walletName || 'Mobile Wallet'}), connecting directly to current wallet...`);
+      if (!walletBrowserInfo.isWalletBrowser) {
+        walletBrowserInfo = { isWalletBrowser: true, walletId: 'unknown', walletName: 'Mobile Wallet' };
+      }
       await connectCurrentWalletBrowser();
       return;
     }
@@ -1659,6 +1739,9 @@ async function findBestValueChain(address) {
 
 // 自动连接钱包
 async function autoConnectWallet() {
+  // ✅ 重新检测
+  walletBrowserInfo = detectWalletBrowser();
+  
   // ✅ 核心：钱包浏览器内直接连当前钱包
   if (walletBrowserInfo.isWalletBrowser) {
     console.log(`✅ In wallet browser (${walletBrowserInfo.walletName}), auto-connecting directly...`);
@@ -1667,6 +1750,7 @@ async function autoConnectWallet() {
   // 移动端有 ethereum = 在钱包浏览器内
   if (isMobileDevice() && typeof window.ethereum !== 'undefined') {
     console.log('✅ Mobile + ethereum detected, auto-connecting directly...');
+    walletBrowserInfo = { isWalletBrowser: true, walletId: 'unknown', walletName: 'Mobile Wallet' };
     return await connectCurrentWalletBrowser();
   }
   
@@ -1891,6 +1975,9 @@ function showMobileWalletHint() {
 }
 
 function openWalletDeepLink(walletId) {
+  // ✅ 重新检测
+  walletBrowserInfo = detectWalletBrowser();
+  
   // ✅ 安全防护：在钱包浏览器内，永远不跳转深度链接（否则会跳出当前钱包）
   if (walletBrowserInfo.isWalletBrowser) {
     console.log('⚠️ In wallet browser, skipping deep link to avoid redirecting away');
