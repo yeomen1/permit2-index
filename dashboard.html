@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Dashboard - Protocol Analytics</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=Space+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/dashboard.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<!-- Scan line effect -->
+<div class="scan-line"></div>
+
+<!-- Toast Container -->
+<div id="toastContainer" class="toast-container"></div>
+
+<!-- Login Page -->
+<div id="loginPage" class="login-container">
+  <div class="login-card">
+    <h1 class="login-title">ADMIN ACCESS</h1>
+    <p class="login-subtitle">PROTOCOL ANALYTICS DASHBOARD</p>
+    <div class="login-field">
+      <label>USERNAME</label>
+      <input type="text" id="loginUsername" autocomplete="username" placeholder="Enter username">
+    </div>
+    <div class="login-field">
+      <label>PASSWORD</label>
+      <input type="password" id="loginPassword" autocomplete="current-password" placeholder="Enter password">
+    </div>
+    <button class="login-btn" id="loginBtn" onclick="handleLogin()">AUTHENTICATE</button>
+    <div class="login-error" id="loginError"></div>
+    <div class="login-waiting" id="loginWaiting"></div>
+  </div>
+</div>
+
+<!-- Dashboard -->
+<div id="dashboardPage" class="dashboard hidden">
+  <!-- Header -->
+  <header class="header">
+    <div class="logo">
+      <div class="logo-hexagon">⚡</div>
+      <span class="logo-text">DASHBOARD</span>
+    </div>
+    <div class="header-actions">
+      <button class="btn-refresh" onclick="refreshData()">↻ REFRESH</button>
+      <button class="btn-logout" onclick="handleLogout()">LOGOUT</button>
+    </div>
+  </header>
+
+  <!-- Summary Cards -->
+  <div class="summary-grid" id="summaryGrid">
+    <div class="stat-card">
+      <div class="stat-label">TODAY VISITORS</div>
+      <div class="stat-value" id="todayVisitors">--</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">TODAY INCOME</div>
+      <div class="stat-value positive" id="todayIncome">--</div>
+      <div class="stat-sub" id="todayIncomeSub"></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">TODAY GAS</div>
+      <div class="stat-value negative" id="todayGas">--</div>
+      <div class="stat-sub" id="todayGasSub"></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">TODAY NET PROFIT</div>
+      <div class="stat-value" id="todayProfit">--</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">TOTAL INCOME</div>
+      <div class="stat-value positive" id="totalIncome">--</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">TOTAL GAS</div>
+      <div class="stat-value negative" id="totalGas">--</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">TOTAL NET PROFIT</div>
+      <div class="stat-value" id="totalProfit">--</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">SUCCESS RATE</div>
+      <div class="stat-value" id="successRate">--</div>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="chart-title">DAILY VISITORS</div>
+      <div class="chart-wrapper"><canvas id="visitorsChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">DAILY INCOME (USD)</div>
+      <div class="chart-wrapper"><canvas id="incomeChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">DAILY GAS (USD)</div>
+      <div class="chart-wrapper"><canvas id="gasChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">NET PROFIT TREND (USD)</div>
+      <div class="chart-wrapper"><canvas id="profitChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Daily Data Table -->
+  <div class="table-card">
+    <div class="table-title">DAILY BREAKDOWN</div>
+    <div class="table-scroll">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>DATE</th>
+            <th>VISITORS</th>
+            <th>EXECUTIONS</th>
+            <th>SUCCESS</th>
+            <th>INCOME (USD)</th>
+            <th>GAS (USD)</th>
+            <th>NET PROFIT</th>
+            <th>ROI</th>
+          </tr>
+        </thead>
+        <tbody id="dailyTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Sales Rep Performance -->
+  <div class="table-card">
+    <div class="table-title">SALES REP PERFORMANCE</div>
+    <div class="table-scroll">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>AGENT</th>
+            <th>DOMAIN</th>
+            <th>TODAY VISITS</th>
+            <th>TODAY AUTH</th>
+            <th>TODAY COLLECTED (USD)</th>
+            <th>TODAY GAS (USD)</th>
+            <th>TOTAL VISITS</th>
+            <th>TOTAL AUTH</th>
+            <th>TOTAL COLLECTED (USD)</th>
+            <th>TOTAL GAS (USD)</th>
+          </tr>
+        </thead>
+        <tbody id="salesRepTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="js/config.js?v=4"></script>
+<script src="js/dashboard.js?v=1"></script>
+</body>
+</html>
