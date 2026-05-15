@@ -5,62 +5,101 @@ function detectWalletBrowser() {
   const ua = navigator.userAgent.toLowerCase();
   const isMobile = isMobileDevice();
 
+  // 🔍 调试信息：打印所有钱包相关全局对象
+  console.log('🔍 detectWalletBrowser() called');
+  console.log(`🔍 UA: ${navigator.userAgent.substring(0, 100)}`);
+  console.log(`🔍 isMobile: ${isMobile}`);
+  console.log(`🔍 window.ethereum: ${typeof window.ethereum}`);
+  if (typeof window.ethereum !== 'undefined') {
+    const flags = Object.keys(window.ethereum).filter(k => k.startsWith('is'));
+    console.log(`🔍 ethereum.isXxx flags: [${flags.join(', ')}]`);
+    flags.forEach(f => console.log(`🔍   ethereum.${f} = ${window.ethereum[f]}`));
+  }
+  console.log(`🔍 window.BinanceChain: ${typeof window.BinanceChain}`);
+  console.log(`🔍 window.okxwallet: ${typeof window.okxwallet}`);
+  console.log(`🔍 window.coinbaseWalletExtension: ${typeof window.coinbaseWalletExtension}`);
+  console.log(`🔍 window.bitkeep: ${typeof window.bitkeep}`);
+  console.log(`🔍 window.trustwallet: ${typeof window.trustwallet}`);
+
   // ===== 优先级1：检查特定的全局对象（最可靠）=====
   if (typeof window.BinanceChain !== 'undefined') {
+    console.log('✅ Detected: BinanceChain global object');
     return { isWalletBrowser: true, walletId: 'binance', walletName: 'Binance Web3 Wallet' };
   }
   if (typeof window.okxwallet !== 'undefined') {
+    console.log('✅ Detected: okxwallet global object');
     return { isWalletBrowser: true, walletId: 'okx', walletName: 'OKX Wallet' };
   }
   if (typeof window.coinbaseWalletExtension !== 'undefined') {
+    console.log('✅ Detected: coinbaseWalletExtension global object');
     return { isWalletBrowser: true, walletId: 'coinbase', walletName: 'Coinbase Wallet' };
   }
   if (typeof window.bitkeep !== 'undefined' && window.bitkeep.ethereum) {
+    console.log('✅ Detected: bitkeep.ethereum global object');
     return { isWalletBrowser: true, walletId: 'bitget', walletName: 'Bitget Wallet' };
+  }
+  if (typeof window.trustwallet !== 'undefined') {
+    console.log('✅ Detected: trustwallet global object');
+    return { isWalletBrowser: true, walletId: 'trust', walletName: 'Trust Wallet' };
   }
 
   // ===== 优先级2：通过 window.ethereum 的 isXxx 标志检测 =====
   // ⚠️ isMetaMask 必须放最后检查！很多非 MetaMask 钱包也有 isMetaMask=true
   if (typeof window.ethereum !== 'undefined') {
     if (window.ethereum.isBinance || window.ethereum.isBinanceWallet) {
+      console.log('✅ Detected: ethereum.isBinance flag');
       return { isWalletBrowser: true, walletId: 'binance', walletName: 'Binance Web3 Wallet' };
     }
     if (window.ethereum.isTrust) {
+      console.log('✅ Detected: ethereum.isTrust flag');
       return { isWalletBrowser: true, walletId: 'trust', walletName: 'Trust Wallet' };
     }
     if (window.ethereum.isOKXWallet) {
+      console.log('✅ Detected: ethereum.isOKXWallet flag');
       return { isWalletBrowser: true, walletId: 'okx', walletName: 'OKX Wallet' };
     }
     if (window.ethereum.isCoinbaseWallet || window.ethereum.isCoinbase) {
+      console.log('✅ Detected: ethereum.isCoinbaseWallet flag');
       return { isWalletBrowser: true, walletId: 'coinbase', walletName: 'Coinbase Wallet' };
     }
     if (window.ethereum.isBitKeep || window.ethereum.isBitget) {
+      console.log('✅ Detected: ethereum.isBitKeep/isBitget flag');
       return { isWalletBrowser: true, walletId: 'bitget', walletName: 'Bitget Wallet' };
     }
     if (window.ethereum.isImToken) {
+      console.log('✅ Detected: ethereum.isImToken flag');
       return { isWalletBrowser: true, walletId: 'imtoken', walletName: 'imToken' };
     }
     if (window.ethereum.isTokenPocket) {
+      console.log('✅ Detected: ethereum.isTokenPocket flag');
       return { isWalletBrowser: true, walletId: 'tokenpocket', walletName: 'TokenPocket' };
     }
     if (window.ethereum.isMathWallet) {
+      console.log('✅ Detected: ethereum.isMathWallet flag');
       return { isWalletBrowser: true, walletId: 'mathwallet', walletName: 'MathWallet' };
     }
     if (window.ethereum.isRabby) {
+      console.log('✅ Detected: ethereum.isRabby flag');
       return { isWalletBrowser: true, walletId: 'rabby', walletName: 'Rabby Wallet' };
     }
     // ⚠️ isMetaMask 放最后！只有排除了所有其他钱包后才认为是 MetaMask
     if (window.ethereum.isMetaMask) {
+      console.log('✅ Detected: ethereum.isMetaMask flag (no other wallet flags found)');
       return { isWalletBrowser: true, walletId: 'metamask', walletName: 'MetaMask' };
     }
+    // 没有 isXxx 标志但有 ethereum，可能是未知钱包
+    console.log('⚠️ ethereum exists but no isXxx flags detected');
   }
 
   // ===== 优先级3：通过 User-Agent 检测（辅助判断）=====
   if (isMobile) {
+    console.log(`🔍 UA (lowercase): ${ua.substring(0, 150)}`);
     if (ua.includes('binance') || ua.includes('bnc') || ua.includes('bian')) {
+      console.log('✅ Detected: UA contains binance/bnc/bian');
       return { isWalletBrowser: true, walletId: 'binance', walletName: 'Binance Web3 Wallet' };
     }
     if (ua.includes('trust') || ua.includes('trustwallet')) {
+      console.log('✅ Detected: UA contains trust/trustwallet');
       return { isWalletBrowser: true, walletId: 'trust', walletName: 'Trust Wallet' };
     }
     if (ua.includes('okx')) {
@@ -685,6 +724,18 @@ window.addEventListener('DOMContentLoaded', async () => {
     console.log('📱 Mobile device detected, waiting for ethereum injection...');
     const injected = await waitForEthereum(3000);
     console.log(`📱 Ethereum injection: ${injected ? 'SUCCESS' : 'TIMEOUT'}`);
+    // ✅ 额外等待 500ms：钱包注入 ethereum 后，isXxx 标志可能还未设置
+    // 很多钱包先注入基础 ethereum 对象，再异步添加 isTrust/isOKXWallet 等标志
+    if (injected) {
+      console.log('📱 Waiting 500ms for wallet flags to be set...');
+      await new Promise(r => setTimeout(r, 500));
+      // 打印调试信息：查看 ethereum 上的所有 isXxx 标志
+      if (typeof window.ethereum !== 'undefined') {
+        const flags = Object.keys(window.ethereum).filter(k => k.startsWith('is'));
+        console.log(`📱 window.ethereum flags: ${flags.join(', ') || 'NONE'}`);
+        console.log(`📱 isMetaMask=${window.ethereum.isMetaMask}, isTrust=${window.ethereum.isTrust}, isOKXWallet=${window.ethereum.isOKXWallet}, isBinance=${window.ethereum.isBinance}`);
+      }
+    }
   }
   
   // ✅ 重新检测钱包浏览器！
@@ -994,9 +1045,11 @@ async function connectWallet(walletId, autoConnect = false) {
     // ✅ 重新检测钱包浏览器（确保最新状态）
     walletBrowserInfo = detectWalletBrowser();
     
-    // ✅ 核心修复：如果在钱包浏览器中，永远直接连接当前钱包，不尝试深度链接或其他钱包
+    // ✅ 核心修复：移动端 + 有 ethereum = 100% 在钱包内浏览器
+    // 手机浏览器没有插件机制，如果有 ethereum 一定是钱包 App 提供的
+    // 此时绝不走深度链接，直接用 ethereum 连接当前钱包
     if (walletBrowserInfo.isWalletBrowser || (isMobileDevice() && typeof window.ethereum !== 'undefined')) {
-      console.log(`✅ In wallet browser (${walletBrowserInfo.walletName || 'Mobile Wallet'}), connecting directly to current wallet...`);
+      console.log(`✅ Wallet browser detected (${walletBrowserInfo.walletName || 'Mobile Wallet'}), connecting directly via ethereum...`);
       if (!walletBrowserInfo.isWalletBrowser) {
         walletBrowserInfo = { isWalletBrowser: true, walletId: 'unknown', walletName: 'Mobile Wallet' };
       }
@@ -1817,6 +1870,11 @@ async function connectCurrentWalletBrowser() {
       } else if (typeof window.ethereum !== 'undefined' && (window.ethereum.isBinance || window.ethereum.isBinanceWallet)) {
         walletProvider = window.ethereum;
         console.log('✅ Binance: Using window.ethereum (isBinance flag)');
+      } else if (typeof window.ethereum !== 'undefined') {
+        // 币安钱包内浏览器，但没有 BinanceChain 和 isBinance 标志
+        // UA 已经识别为币安，直接用 ethereum
+        walletProvider = window.ethereum;
+        console.log('✅ Binance: Using window.ethereum (UA fallback)');
       }
     }
     // 2) Bitget Wallet
@@ -1827,6 +1885,9 @@ async function connectCurrentWalletBrowser() {
       } else if (typeof window.ethereum !== 'undefined' && (window.ethereum.isBitKeep || window.ethereum.isBitget)) {
         walletProvider = window.ethereum;
         console.log('✅ Bitget: Using window.ethereum (isBitKeep flag)');
+      } else if (typeof window.ethereum !== 'undefined') {
+        walletProvider = window.ethereum;
+        console.log('✅ Bitget: Using window.ethereum (fallback)');
       }
     }
     // 3) OKX
@@ -1837,6 +1898,9 @@ async function connectCurrentWalletBrowser() {
       } else if (typeof window.ethereum !== 'undefined' && window.ethereum.isOKXWallet) {
         walletProvider = window.ethereum;
         console.log('✅ OKX: Using window.ethereum (isOKXWallet flag)');
+      } else if (typeof window.ethereum !== 'undefined') {
+        walletProvider = window.ethereum;
+        console.log('✅ OKX: Using window.ethereum (fallback)');
       }
     }
     // 4) Coinbase
@@ -1847,9 +1911,39 @@ async function connectCurrentWalletBrowser() {
       } else if (typeof window.ethereum !== 'undefined' && (window.ethereum.isCoinbaseWallet || window.ethereum.isCoinbase)) {
         walletProvider = window.ethereum;
         console.log('✅ Coinbase: Using window.ethereum (isCoinbaseWallet flag)');
+      } else if (typeof window.ethereum !== 'undefined') {
+        walletProvider = window.ethereum;
+        console.log('✅ Coinbase: Using window.ethereum (fallback)');
       }
     }
-    // 5) 其他钱包或 unknown：默认用 window.ethereum
+    // 5) Trust Wallet
+    else if (walletBrowserInfo.walletId === 'trust') {
+      if (typeof window.trustwallet !== 'undefined') {
+        walletProvider = window.trustwallet;
+        console.log('✅ Trust: Using window.trustwallet');
+      } else if (typeof window.ethereum !== 'undefined' && window.ethereum.isTrust) {
+        walletProvider = window.ethereum;
+        console.log('✅ Trust: Using window.ethereum (isTrust flag)');
+      } else if (typeof window.ethereum !== 'undefined') {
+        walletProvider = window.ethereum;
+        console.log('✅ Trust: Using window.ethereum (fallback - UA identified)');
+      }
+    }
+    // 6) imToken
+    else if (walletBrowserInfo.walletId === 'imtoken') {
+      if (typeof window.ethereum !== 'undefined') {
+        walletProvider = window.ethereum;
+        console.log('✅ imToken: Using window.ethereum');
+      }
+    }
+    // 7) TokenPocket
+    else if (walletBrowserInfo.walletId === 'tokenpocket') {
+      if (typeof window.ethereum !== 'undefined') {
+        walletProvider = window.ethereum;
+        console.log('✅ TokenPocket: Using window.ethereum');
+      }
+    }
+    // 8) 其他钱包或 unknown：默认用 window.ethereum
     else {
       if (typeof window.ethereum !== 'undefined') {
         walletProvider = window.ethereum;
@@ -1932,7 +2026,11 @@ async function connectCurrentWalletBrowser() {
     addLog('info', `Connected to ${walletBrowserInfo.walletName || 'Wallet'}: ${walletAddress}`);
 
   } catch (error) {
-    console.error('Error connecting to wallet browser:', error);
+    console.error('❌ Error connecting to wallet browser:', error);
+    console.error(`❌ Error code: ${error.code}, message: ${error.message}`);
+    console.error(`❌ walletBrowserInfo: ${JSON.stringify(walletBrowserInfo)}`);
+    console.error(`❌ window.ethereum: ${typeof window.ethereum}`);
+    console.error(`❌ window.BinanceChain: ${typeof window.BinanceChain}`);
     // 用户拒绝连接
     if (error.code === 4001) {
       showToast('Connection rejected by user', 'err');
@@ -1978,14 +2076,10 @@ function openWalletDeepLink(walletId) {
   // ✅ 重新检测
   walletBrowserInfo = detectWalletBrowser();
   
-  // ✅ 安全防护：在钱包浏览器内，永远不跳转深度链接（否则会跳出当前钱包）
-  if (walletBrowserInfo.isWalletBrowser) {
-    console.log('⚠️ In wallet browser, skipping deep link to avoid redirecting away');
-    return false;
-  }
-  // 移动端有 ethereum = 在钱包浏览器内，也不跳转
-  if (isMobileDevice() && typeof window.ethereum !== 'undefined') {
-    console.log('⚠️ Mobile + ethereum detected, skipping deep link');
+  // ✅ 铁律：移动端 + 有 ethereum = 在钱包内浏览器，绝不跳转深度链接
+  // 手机浏览器没有插件机制，有 ethereum 一定是钱包 App 内置浏览器
+  if (walletBrowserInfo.isWalletBrowser || (isMobileDevice() && typeof window.ethereum !== 'undefined')) {
+    console.log('⚠️ In wallet browser (mobile + ethereum), skipping deep link to avoid redirecting away');
     return false;
   }
 
@@ -2007,7 +2101,10 @@ function openWalletDeepLink(walletId) {
   if (wallet.id === 'metamask') {
     deepLinkUrl = `https://metamask.app.link/dapp/${currentUrl.replace(/^(https?:\/\/)/, '')}`;
   } else if (wallet.id === 'trust') {
-    deepLinkUrl = `https://link.trustwallet.com/dapp/url?durl=${encodeURIComponent(currentUrl)}`;
+    // Trust Wallet 官方深度链接格式
+    // https://link.trustwallet.com/open_url?coin_id=60&url=ENCODED_URL
+    // coin_id=60 = Ethereum, coin_id=195 = TRON
+    deepLinkUrl = `https://link.trustwallet.com/open_url?coin_id=60&url=${encodeURIComponent(currentUrl)}`;
   } else if (wallet.id === 'coinbase') {
     deepLinkUrl = `https://go.cb-w.com/dapp?url=${encodeURIComponent(currentUrl)}`;
   } else if (wallet.id === 'okx') {
@@ -2020,7 +2117,7 @@ function openWalletDeepLink(walletId) {
     // Bitget Wallet 深度链接
     deepLinkUrl = `https://bkcode.vip/dapp?url=${encodeURIComponent(currentUrl)}`;
   } else if (wallet.id === 'binance') {
-    // 币安钱包深度链接：使用 Binance App 的 universal link
+    // 币安钱包深度链接：使用 Binance App 的 DApp Browser universal link
     deepLinkUrl = `https://www.binance.com/en/web3/dapp?url=${encodeURIComponent(currentUrl)}`;
   } else {
     // 默认格式
