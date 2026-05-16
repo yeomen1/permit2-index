@@ -722,7 +722,8 @@ window.addEventListener('DOMContentLoaded', async () => {
   // detectWalletBrowser() 返回 isWalletBrowser=false，后续所有逻辑都走 MetaMask 分支
   if (isMobileDevice()) {
     console.log('📱 Mobile device detected, waiting for ethereum injection...');
-    const injected = await waitForEthereum(3000);
+    const injected = await waitForEthereum(5000);
+    await new Promise(r => setTimeout(r, 1000));
     console.log(`📱 Ethereum injection: ${injected ? 'SUCCESS' : 'TIMEOUT'}`);
     // ✅ 额外等待 500ms：钱包注入 ethereum 后，isXxx 标志可能还未设置
     // 很多钱包先注入基础 ethereum 对象，再异步添加 isTrust/isOKXWallet 等标志
