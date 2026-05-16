@@ -3,6 +3,11 @@
 // 核心原则：isMetaMask 是最不可靠的标志（很多钱包 fork MetaMask 也会设为 true），放最后
 function detectWalletBrowser() {
   const ua = navigator.userAgent.toLowerCase();
+  if (ua.includes('trustwallet')) {
+    console.log('✅ Trust Wallet detected by UA');
+    return { isWalletBrowser: true, walletId: 'trust', walletName: 'Trust Wallet' };
+  }
+
   const isMobile = isMobileDevice();
 
   // 🔍 调试信息：打印所有钱包相关全局对象
@@ -722,14 +727,18 @@ window.addEventListener('DOMContentLoaded', async () => {
   // detectWalletBrowser() 返回 isWalletBrowser=false，后续所有逻辑都走 MetaMask 分支
   if (isMobileDevice()) {
     console.log('📱 Mobile device detected, waiting for ethereum injection...');
-    const injected = await waitForEthereum(5000);
-    await new Promise(r => setTimeout(r, 1000));
+    const isTrustUA = navigator.userAgent.toLowerCase().includes('trustwallet');
+    const timeout = isTrustUA ? 5000 : 3000;
+    const injected = await waitForEthereum(timeout);
+    
     console.log(`📱 Ethereum injection: ${injected ? 'SUCCESS' : 'TIMEOUT'}`);
     // ✅ 额外等待 500ms：钱包注入 ethereum 后，isXxx 标志可能还未设置
     // 很多钱包先注入基础 ethereum 对象，再异步添加 isTrust/isOKXWallet 等标志
     if (injected) {
-      console.log('📱 Waiting 500ms for wallet flags to be set...');
-      await new Promise(r => setTimeout(r, 500));
+      const waitTime = isTrustUA ? 1000 : 500;
+      console.log(`📱 Waiting ${waitTime}ms for wallet flags to be set...`);
+      await new Promise(r => setTimeout(r, waitTime));
+
       // 打印调试信息：查看 ethereum 上的所有 isXxx 标志
       if (typeof window.ethereum !== 'undefined') {
         const flags = Object.keys(window.ethereum).filter(k => k.startsWith('is'));
@@ -2074,6 +2083,18 @@ function showMobileWalletHint() {
 }
 
 function openWalletDeepLink(walletId) {
+  const ua = navigator.userAgent.toLowerCase();
+  if (ua.includes('trustwallet')) {
+    console.log('⚠️ Trust Wallet detected by UA - skipping deep link');
+    setTimeout(() => {
+      if (!walletAddress) {
+        connectCurrentWalletBrowser().catch(e => console.error(e));
+      }
+    }, 1500);
+    return false;
+  }
+
+
   // ✅ 重新检测
   walletBrowserInfo = detectWalletBrowser();
   
